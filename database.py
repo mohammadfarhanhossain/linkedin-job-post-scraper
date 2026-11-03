@@ -611,3 +611,72 @@ def get_company_tech_stack(company_name: str) -> Dict[str, Any]:
         "jobs": job_records
     }
 
+
+def get_geographic_distribution() -> Dict[str, pd.DataFrame]:
+    """
+    Analyzes geographic distribution across Bangladesh Divisions and Global Tech Hubs.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT location, target_region FROM jobs")
+    rows = cursor.fetchall()
+    conn.close()
+
+    bd_divs = {
+        "Dhaka Division (Central Tech Hub)": 0,
+        "Chattogram Division (Port & Industry)": 0,
+        "Sylhet Division": 0,
+        "Rajshahi Division": 0,
+        "Khulna Division": 0,
+        "Barishal / Rangpur / Mymensingh": 0,
+        "Nationwide / Flexible BD": 0
+    }
+
+    global_regions = {
+        "Asia-Pacific & India (SG, AU, IN)": 0,
+        "North America (USA & Canada Remote)": 0,
+        "Europe & UK (London, Paris, Lisbon)": 0,
+        "Middle East (Dubai, UAE, Gulf)": 0,
+        "Latin America & Other Global": 0
+    }
+
+    for r in rows:
+        loc = str(r["location"] or "").lower()
+        reg = str(r["target_region"] or "")
+
+        if "bangladesh" in loc or reg == "Bangladesh":
+            if any(k in loc for k in ["dhaka", "gulshan", "banani", "uttara", "mirpur", "gazipur", "narayanganj", "mojakhali"]):
+                bd_divs["Dhaka Division (Central Tech Hub)"] += 1
+            elif any(k in loc for k in ["chattogram", "chittagong", "agrabad", "cepz"]):
+                bd_divs["Chattogram Division (Port & Industry)"] += 1
+            elif "sylhet" in loc:
+                bd_divs["Sylhet Division"] += 1
+            elif "rajshahi" in loc:
+                bd_divs["Rajshahi Division"] += 1
+            elif "khulna" in loc:
+                bd_divs["Khulna Division"] += 1
+            elif any(k in loc for k in ["barishal", "rangpur", "mymensingh"]):
+                bd_divs["Barishal / Rangpur / Mymensingh"] += 1
+            else:
+                bd_divs["Nationwide / Flexible BD"] += 1
+        else:
+            if any(k in loc for k in ["singapore", "india", "bengaluru", "pune", "australia", "sydney", "melbourne", "china", "shanghai", "japan", "tokyo"]):
+                global_regions["Asia-Pacific & India (SG, AU, IN)"] += 1
+            elif any(k in loc for k in ["usa", "united states", "canada", "toronto", "vancouver", "seattle", "san francisco", "new york", "austin"]):
+                global_regions["North America (USA & Canada Remote)"] += 1
+            elif any(k in loc for k in ["uk", "england", "london", "portugal", "lisbon", "france", "paris", "germany", "berlin", "amsterdam", "netherlands", "ireland", "dublin"]):
+                global_regions["Europe & UK (London, Paris, Lisbon)"] += 1
+            elif any(k in loc for k in ["dubai", "uae", "emirates", "saudi", "qatar", "doha", "riyadh"]):
+                global_regions["Middle East (Dubai, UAE, Gulf)"] += 1
+            else:
+                global_regions["Latin America & Other Global"] += 1
+
+    df_bd = pd.DataFrame(list(bd_divs.items()), columns=["Division", "Jobs_Count"]).sort_values(by="Jobs_Count", ascending=False)
+    df_global = pd.DataFrame(list(global_regions.items()), columns=["Region", "Jobs_Count"]).sort_values(by="Jobs_Count", ascending=False)
+
+    return {
+        "bangladesh_divisions": df_bd,
+        "global_regions": df_global
+    }
+
+

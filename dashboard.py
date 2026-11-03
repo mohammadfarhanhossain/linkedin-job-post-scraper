@@ -1,18 +1,22 @@
 """
 Streamlit Web Dashboard for LinkedIn & Multi-Platform Job Market Intelligence.
+Sleek Dark Mode Edition.
 Features:
 - Sector Market Trends & Specialization Analytics (Increasing vs Decreasing)
 - In-Demand Skills Analytics (Mining top technologies across domains)
 - Company Recruitment Rankings & Deep Tech-Stack Intelligence Profiler
-- Browse All Vacancies with 1-Click Custom Filtered Excel Download
-- Smart Resume / CV Matcher (% Match Score & Gap Analysis)
+- Browse All Vacancies with 1-Click Custom Filtered Excel & ⚡ Fresh Drop (<48h) Filter
+- Geographic Distribution & Tech Hubs Heatmap (BD Divisions + Global Remote)
+- Smart Resume / CV Matcher & AI Cover Letter / Recruiter Outreach Pitch Generator
+- Career Pathways & Skill Roadmaps with Interview Question Bank
 - Salary Benchmarking & Compensation Intelligence
 - 3-Day Job Link Health Checker, Printable Executive PDF Reports & Daily Email Digest
 """
 
 import io
+import os
 import importlib
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from pathlib import Path
 
 import streamlit as st
@@ -28,59 +32,102 @@ import pdf_reporter
 import resume_matcher
 import link_checker
 import email_digest
+import career_advisor
 from config import SCRAPE_SETTINGS
 
 # Configure page
 st.set_page_config(
-    page_title="Job Market Intelligence & Trend Tracker",
+    page_title="Job Market Intelligence & Career Platform",
     page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom Sleek Dark Theme CSS
 st.markdown("""
 <style>
+    /* Sleek Dark Mode Styling */
+    .stApp {
+        background-color: #0b0f19;
+        color: #f3f4f6;
+    }
     .metric-card {
-        background-color: #f8fafc;
-        border-radius: 8px;
-        padding: 15px;
-        border-left: 5px solid #0a66c2;
+        background: linear-gradient(145deg, #161f30, #111827);
+        border: 1px solid #1e293b;
+        border-radius: 10px;
+        padding: 16px;
+        border-left: 5px solid #38bdf8;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     .match-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 18px;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+        transition: all 0.2s ease-in-out;
+    }
+    .match-card:hover {
+        border-color: #38bdf8;
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.15);
     }
     .badge-skill {
-        background: #e0f2fe;
-        color: #0369a1;
-        padding: 3px 8px;
-        border-radius: 12px;
+        background: rgba(56, 189, 248, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        padding: 3px 10px;
+        border-radius: 14px;
         font-size: 11px;
-        margin-right: 4px;
+        font-weight: 500;
+        margin-right: 5px;
         display: inline-block;
-        margin-bottom: 4px;
+        margin-bottom: 5px;
     }
     .badge-missing {
-        background: #fee2e2;
-        color: #b91c1c;
-        padding: 3px 8px;
-        border-radius: 12px;
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 3px 10px;
+        border-radius: 14px;
         font-size: 11px;
-        margin-right: 4px;
+        font-weight: 500;
+        margin-right: 5px;
         display: inline-block;
-        margin-bottom: 4px;
+        margin-bottom: 5px;
+    }
+    .badge-fresh {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: bold;
+        display: inline-block;
     }
     .salary-box {
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
+        background: linear-gradient(135deg, #064e3b 0%, #062f26 100%);
+        border: 1px solid #059669;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.12);
+    }
+    .roadmap-step {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-left: 4px solid #818cf8;
         border-radius: 8px;
         padding: 16px;
-        margin-bottom: 15px;
+        margin-bottom: 14px;
+    }
+    .interview-q {
+        background: #161f30;
+        border: 1px solid #1e293b;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -112,10 +159,10 @@ stats, raw_all_jobs = load_data()
 all_jobs = raw_all_jobs.copy()
 
 # Sidebar
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png", width=55)
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png", width=50)
 st.sidebar.title("Market Intelligence")
 st.sidebar.markdown("**Multi-Platform Recruitment Tracker**")
-st.sidebar.caption("Platforms: LinkedIn • BDJobs • Indeed")
+st.sidebar.caption("Platforms: 🔵 LinkedIn • 🟢 BDJobs • 🟣 Indeed")
 st.sidebar.divider()
 
 # Market Scope Filter (Bangladesh vs Worldwide / Global)
@@ -188,7 +235,7 @@ st.sidebar.caption(f"🏢 Active Employers: {stats.get('total_companies', raw_al
 
 # Header
 st.title("💼 Job Vacancy & Industrial Trend Intelligence Platform")
-st.markdown("Real-time market analytics, in-demand skills mining, company tech-stack profiling & smart resume matching across **Software, AI, VLSI, Power, Construction, Manufacturing & all Engineering sectors**.")
+st.markdown("Real-time market analytics, in-demand skills mining, company tech-stack profiling & smart career matching across **Software, AI, VLSI, Power, Construction, Manufacturing & all Engineering sectors**.")
 
 # Top KPIs
 col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -214,20 +261,22 @@ with col6:
 
 st.divider()
 
-# Navigation Tabs
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "📈 Sector Trends (Increasing vs Decreasing)",
-    "🎯 In-Demand Skills Analytics",
-    "🏢 Company Tech-Stack Intelligence",
-    "🔍 Browse All Vacancies",
-    "📄 Smart Resume / CV Matcher",
-    "💰 Salary Benchmarking & Compensation",
-    "🔄 Link Health, Executive Reports & Email Digest"
+# Navigation Tabs - 9 Dedicated Modules
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    "📈 Sector Trends",
+    "🎯 In-Demand Skills",
+    "🏢 Company Tech-Stack",
+    "🔍 Browse Vacancies",
+    "🗺️ Geographic Hubs",
+    "📄 Smart Resume & AI Pitch",
+    "🎓 Career Roadmaps",
+    "💰 Salary Benchmarks",
+    "🔄 Reports & Email Digest"
 ])
 
 # Tab 1: Sector Trends
 with tab1:
-    st.subheader("Monthly Sector & Specialization Vacancy Trends")
+    st.subheader("📈 Monthly Sector & Specialization Vacancy Trends")
     st.info("💡 Tracks whether job posts are increasing (bartese) vs decreasing (komtese) across Domains and Specializations.")
 
     group_by_view = st.radio(
@@ -245,9 +294,9 @@ with tab1:
             lambda x: "Increasing (Growth)" if x > 0 else "Decreasing (Decline)" if x < 0 else "Stable"
         )
         color_map = {
-            "Increasing (Growth)": "#2ecc71",
-            "Decreasing (Decline)": "#e74c3c",
-            "Stable": "#95a5a6"
+            "Increasing (Growth)": "#10b981",
+            "Decreasing (Decline)": "#ef4444",
+            "Stable": "#64748b"
         }
 
         y_col = "category" if "Specialization" in group_by_view else "field"
@@ -261,9 +310,15 @@ with tab1:
             color_discrete_map=color_map,
             orientation="h",
             labels={"difference": "Change in Vacancies (+/-)", y_col: y_label},
-            title=f"Net Change in Vacancies ({y_label})"
+            title=f"Net Change in Vacancies ({y_label})",
+            template="plotly_dark"
         )
-        fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=540)
+        fig.update_layout(
+            yaxis={"categoryorder": "total ascending"},
+            height=540,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("---")
@@ -281,9 +336,15 @@ with tab1:
                 color="field",
                 orientation="h",
                 labels={"specialization": "Granular Specialization", "Total Vacancies": "Open Vacancies Count", "field": "Subject Domain"},
-                title="Top 25 In-Demand Granular Specializations"
+                title="Top 25 In-Demand Granular Specializations",
+                template="plotly_dark"
             )
-            fig_spec_total.update_layout(yaxis={"categoryorder": "total ascending"}, height=650)
+            fig_spec_total.update_layout(
+                yaxis={"categoryorder": "total ascending"},
+                height=650,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
             st.plotly_chart(fig_spec_total, use_container_width=True)
 
             colT1, colT2 = st.columns([1, 1])
@@ -300,7 +361,7 @@ with tab1:
 
 # Tab 2: In-Demand Skills Analytics
 with tab2:
-    st.subheader("Top In-Demand Skills & Technologies")
+    st.subheader("🎯 Top In-Demand Skills & Technologies")
     st.markdown("Identifies the most requested tools, languages, and competencies extracted from actual job postings.")
 
     filter_skill_sector = st.selectbox(
@@ -318,11 +379,17 @@ with tab2:
             y="Skill",
             orientation="h",
             color="Job_Count",
-            color_continuous_scale="Viridis",
+            color_continuous_scale="Teal",
             labels={"Job_Count": "Number of Vacancies Requiring Skill", "Skill": "Technology / Skill"},
-            title=f"Top In-Demand Skills ({filter_skill_sector})"
+            title=f"Top In-Demand Skills ({filter_skill_sector})",
+            template="plotly_dark"
         )
-        fig_skills.update_layout(yaxis={"categoryorder": "total ascending"}, height=500)
+        fig_skills.update_layout(
+            yaxis={"categoryorder": "total ascending"},
+            height=500,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
         st.plotly_chart(fig_skills, use_container_width=True)
 
         colA, colB = st.columns([1, 1])
@@ -350,9 +417,15 @@ with tab3:
             orientation="h",
             color="Open Positions",
             color_continuous_scale="Blues",
-            title="Top 15 Most Active Employers"
+            title="Top 15 Most Active Employers",
+            template="plotly_dark"
         )
-        fig_comp.update_layout(yaxis={"categoryorder": "total ascending"}, height=460)
+        fig_comp.update_layout(
+            yaxis={"categoryorder": "total ascending"},
+            height=460,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
         st.plotly_chart(fig_comp, use_container_width=True)
 
         st.markdown("---")
@@ -361,7 +434,6 @@ with tab3:
 
         all_unique_companies = sorted(list(all_jobs["company"].dropna().unique()))
         
-        # Pick default index
         default_comp_idx = 0
         for idx, c_name in enumerate(all_unique_companies):
             if any(k in c_name.lower() for k in ["brain station", "therap", "enosis", "optimizely", "walton"]):
@@ -398,10 +470,16 @@ with tab3:
                     y="Skill",
                     orientation="h",
                     color="Count",
-                    color_continuous_scale="Tealgrn",
-                    title=f"Top Tech Skills Required by {selected_profile_company}"
+                    color_continuous_scale="Purples",
+                    title=f"Top Tech Skills Required by {selected_profile_company}",
+                    template="plotly_dark"
                 )
-                fig_c_sk.update_layout(yaxis={"categoryorder": "total ascending"}, height=380)
+                fig_c_sk.update_layout(
+                    yaxis={"categoryorder": "total ascending"},
+                    height=380,
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)"
+                )
                 st.plotly_chart(fig_c_sk, use_container_width=True)
             else:
                 st.info(f"No specific skill tags found for {selected_profile_company}.")
@@ -413,9 +491,14 @@ with tab3:
                     names="Specialization",
                     values="Count",
                     hole=0.45,
-                    title=f"Role Breakdown at {selected_profile_company}"
+                    title=f"Role Breakdown at {selected_profile_company}",
+                    template="plotly_dark"
                 )
-                fig_c_sp.update_layout(height=380)
+                fig_c_sp.update_layout(
+                    height=380,
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)"
+                )
                 st.plotly_chart(fig_c_sp, use_container_width=True)
 
         st.markdown(f"**Open Job Vacancies at {selected_profile_company}:**")
@@ -435,7 +518,13 @@ with tab3:
 
 # Tab 4: Browse Vacancies & Custom Filtered Excel Download
 with tab4:
-    st.subheader("Explore All Scraped Vacancies")
+    st.subheader("🔍 Explore All Scraped Vacancies")
+
+    col_flt1, col_flt2 = st.columns([3, 1])
+    with col_flt1:
+        fresh_only = st.checkbox("⚡ Show Fresh Drops Only (< 48 Hours Live)", value=False)
+    with col_flt2:
+        pass
 
     filtered_df = all_jobs.copy()
     if selected_field != "All":
@@ -448,6 +537,10 @@ with tab4:
         filtered_df = filtered_df[filtered_df["experience_level"] == selected_exp]
     if selected_status != "All":
         filtered_df = filtered_df[filtered_df["status"] == selected_status]
+
+    if fresh_only:
+        two_days_ago = (date.today() - timedelta(days=2)).isoformat()
+        filtered_df = filtered_df[filtered_df["first_seen_date"] >= two_days_ago]
 
     if search_keyword:
         kw = search_keyword.lower()
@@ -492,73 +585,235 @@ with tab4:
     else:
         st.info("No jobs found matching the selected filters.")
 
-# Tab 5: Smart Resume Matcher
+# Tab 5: Geographic Distribution & Tech Hubs Heatmap
 with tab5:
-    st.subheader("📄 Smart Resume / CV Matcher")
-    st.markdown("Upload your CV (PDF) to analyze your profile and find which current vacancies best match your skill set.")
+    st.subheader("🗺️ Geographic Distribution & Tech Hubs Intelligence")
+    st.markdown("Analyzes recruitment density across **Bangladesh Divisions** and **Global Remote Hubs**.")
 
-    uploaded_file = st.file_uploader("Upload Your Resume (PDF)", type=["pdf"])
+    geo_data = database.get_geographic_distribution()
+    df_bd_geo = geo_data["bangladesh_divisions"]
+    df_global_geo = geo_data["global_regions"]
 
-    if uploaded_file is not None:
-        with st.spinner("Analyzing resume and computing match scores..."):
-            resume_text = resume_matcher.parse_resume_pdf(uploaded_file)
-            if not resume_text:
-                st.error("Could not extract readable text from this PDF. Please ensure it is not a scanned image.")
-            else:
-                profile = resume_matcher.analyze_candidate_profile(resume_text)
-                
-                st.success("✔ Resume successfully analyzed!")
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.metric("Detected Skills Count", len(profile["skills"]))
-                with c2:
-                    st.metric("Estimated Experience", profile["experience_level"])
-                with c3:
-                    st.metric("Document Word Count", profile["word_count"])
+    col_g1, col_g2 = st.columns([1, 1])
 
-                st.markdown("**Your Identified Skills:**")
-                skill_pills = " ".join([f"<span class='badge-skill'>{s}</span>" for s in profile["skills"]])
-                st.markdown(skill_pills, unsafe_allow_html=True)
-                st.divider()
+    with col_g1:
+        st.markdown("#### 🇧🇩 Bangladesh Regional Recruitment Hubs")
+        fig_bd_geo = px.bar(
+            df_bd_geo,
+            x="Jobs_Count",
+            y="Division",
+            orientation="h",
+            color="Jobs_Count",
+            color_continuous_scale="Tealgrn",
+            labels={"Jobs_Count": "Open Vacancies", "Division": "Regional Division"},
+            title="Jobs by Bangladesh Administrative Division",
+            template="plotly_dark"
+        )
+        fig_bd_geo.update_layout(
+            yaxis={"categoryorder": "total ascending"},
+            height=380,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        st.plotly_chart(fig_bd_geo, use_container_width=True)
+        st.dataframe(df_bd_geo, use_container_width=True, hide_index=True)
 
-                matches = resume_matcher.match_resume_against_jobs(resume_text, top_n=12)
+    with col_g2:
+        st.markdown("#### 🌐 Global Remote & International Hubs")
+        fig_global_geo = px.pie(
+            df_global_geo,
+            names="Region",
+            values="Jobs_Count",
+            hole=0.45,
+            title="Global Vacancies by Continent / Tech Hub",
+            template="plotly_dark"
+        )
+        fig_global_geo.update_layout(
+            height=380,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        st.plotly_chart(fig_global_geo, use_container_width=True)
+        st.dataframe(df_global_geo, use_container_width=True, hide_index=True)
 
-                st.subheader(f"Top {len(matches)} Recommended Vacancies for You")
-
-                for m in matches:
-                    st.markdown(f"""
-                    <div class='match-card'>
-                        <div style='display: flex; justify-content: space-between; align-items: center;'>
-                            <h3 style='margin: 0; color: #0a66c2;'>{m['title']}</h3>
-                            <span style='font-size: 18px; font-weight: bold; color: {'#16a34a' if m['match_score'] >= 60 else '#ea580c'};'>
-                                {m['match_score']}% Match
-                            </span>
-                        </div>
-                        <p style='margin: 5px 0 10px 0; color: #475569;'>
-                            <b>{m['company']}</b> • {m['location']} • <span style='color: #0369a1;'>{m['field']}</span>
-                        </p>
-                        <div>
-                            <b>Matched Skills:</b> {' '.join([f"<span class='badge-skill'>{s}</span>" for s in m['matched_skills']]) if m['matched_skills'] else 'Relevant profile match'}
-                        </div>
-                        <div style='margin-top: 5px;'>
-                            <b>Missing Skills to learn:</b> {' '.join([f"<span class='badge-missing'>{s}</span>" for s in m['missing_skills']]) if m['missing_skills'] else 'None (Full match!)'}
-                        </div>
-                        <div style='margin-top: 10px;'>
-                            <a href='{m['job_url']}' target='_blank' style='background: #0a66c2; color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;'>
-                                ↗ Apply on Job Post
-                            </a>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-    else:
-        st.info("Upload a resume PDF to see your personalized match scores and recommended job posts.")
-
-# Tab 6: Salary Benchmarking & Compensation Analytics
+# Tab 6: Smart Resume Matcher & AI Pitch Generator
 with tab6:
+    st.subheader("📄 Smart Resume / CV Matcher & AI Outreach Generator")
+    st.markdown("Upload your CV to calculate your skill match percentage, identify gaps, and generate customized recruiter pitch letters.")
+
+    col_rm1, col_rm2 = st.columns([1, 1])
+
+    with col_rm1:
+        st.markdown("#### 📤 Upload Resume (PDF)")
+        uploaded_file = st.file_uploader("Choose your CV PDF", type=["pdf"])
+
+        detected_profile = None
+        if uploaded_file is not None:
+            with st.spinner("Analyzing resume content..."):
+                resume_text = resume_matcher.parse_resume_pdf(uploaded_file)
+                if resume_text:
+                    detected_profile = resume_matcher.analyze_candidate_profile(resume_text)
+                    st.success("✔ Resume parsed successfully!")
+                    
+                    rm_c1, rm_c2 = st.columns(2)
+                    with rm_c1:
+                        st.metric("Detected Skills", len(detected_profile["skills"]))
+                    with rm_c2:
+                        st.metric("Estimated Level", detected_profile["experience_level"])
+
+                    st.markdown("**Your Identified Skills:**")
+                    skill_pills = " ".join([f"<span class='badge-skill'>{s}</span>" for s in detected_profile["skills"]])
+                    st.markdown(skill_pills, unsafe_allow_html=True)
+                else:
+                    st.error("Could not parse readable text from this PDF.")
+
+    with col_rm2:
+        st.markdown("#### ✍️ AI Cover Letter & LinkedIn Recruiter Pitch")
+        st.markdown("Generate tailored application pitches for any job in the database:")
+
+        target_job_list = all_jobs["title"] + " @ " + all_jobs["company"] if not all_jobs.empty else []
+        selected_job_pitch = st.selectbox("Select Target Job:", target_job_list.head(30) if not all_jobs.empty else ["No jobs"])
+
+        pitch_candidate_name = st.text_input("Your Full Name", value="Mohammad Farhan Hossain")
+        pitch_exp = st.selectbox("Your Experience Level", ["1-2 Years", "2-4 Years (Mid)", "5+ Years (Senior)", "Fresher / Entry Level"], index=1)
+        
+        default_skills = ", ".join(detected_profile["skills"][:4]) if detected_profile and detected_profile["skills"] else "Python, FastAPI, SQL, Docker"
+        pitch_skills_raw = st.text_input("Your Core Skills (comma separated)", value=default_skills)
+
+        if st.button("Generate Tailored Cover Letter & Pitch"):
+            if not all_jobs.empty:
+                # Find matching row
+                idx_selected = target_job_list[target_job_list == selected_job_pitch].index[0]
+                target_job_data = all_jobs.loc[idx_selected].to_dict()
+
+                user_skill_list = [s.strip() for s in pitch_skills_raw.split(",") if s.strip()]
+
+                c_letter = career_advisor.generate_cover_letter(
+                    candidate_name=pitch_candidate_name,
+                    years_exp=pitch_exp,
+                    current_role="Software Engineer",
+                    user_skills=user_skill_list,
+                    job=target_job_data
+                )
+
+                r_pitch = career_advisor.generate_recruiter_pitch(
+                    candidate_name=pitch_candidate_name,
+                    years_exp=pitch_exp,
+                    user_skills=user_skill_list,
+                    job=target_job_data
+                )
+
+                st.subheader("📑 Formal Application Cover Letter")
+                st.text_area("Cover Letter", value=c_letter, height=220)
+                st.download_button("📥 Download Cover Letter (.txt)", c_letter, file_name=f"cover_letter_{target_job_data['company'][:10]}.txt")
+
+                st.subheader("💬 LinkedIn Direct Recruiter Outreach Pitch (< 140 words)")
+                st.text_area("Recruiter DM Pitch", value=r_pitch, height=140)
+
+    # Recommendations row
+    if uploaded_file is not None and detected_profile:
+        st.markdown("---")
+        st.subheader("🎯 Recommended Vacancies for Your Profile")
+        matches = resume_matcher.match_resume_against_jobs(resume_text, top_n=10)
+
+        for m in matches:
+            st.markdown(f"""
+            <div class='match-card'>
+                <div style='display: flex; justify-content: space-between; align-items: center;'>
+                    <h3 style='margin: 0; color: #38bdf8;'>{m['title']}</h3>
+                    <span style='font-size: 18px; font-weight: bold; color: {'#10b981' if m['match_score'] >= 60 else '#f59e0b'};'>
+                        {m['match_score']}% Match
+                    </span>
+                </div>
+                <p style='margin: 5px 0 10px 0; color: #94a3b8;'>
+                    <b>{m['company']}</b> • {m['location']} • <span style='color: #818cf8;'>{m['field']}</span>
+                </p>
+                <div>
+                    <b>Matched Skills:</b> {' '.join([f"<span class='badge-skill'>{s}</span>" for s in m['matched_skills']]) if m['matched_skills'] else 'Relevant profile match'}
+                </div>
+                <div style='margin-top: 5px;'>
+                    <b>Missing Skills to learn:</b> {' '.join([f"<span class='badge-missing'>{s}</span>" for s in m['missing_skills']]) if m['missing_skills'] else 'None (Full match!)'}
+                </div>
+                <div style='margin-top: 12px;'>
+                    <a href='{m['job_url']}' target='_blank' style='background: #38bdf8; color: #0f172a; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;'>
+                        ↗ Apply on Job Post
+                    </a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+# Tab 7: Career Pathways & Skill Roadmaps
+with tab7:
+    st.subheader("🎓 Career Pathways, Skill Roadmaps & Interview Question Bank")
+    st.markdown("Structured technical learning roadmap and interview screening preparation kit for in-demand roles.")
+
+    available_roadmaps = list(career_advisor.ROADMAP_DATA.keys()) + ["Cybersecurity & Pentesting", "SQA & Automation", "Power & High Voltage"]
+    selected_roadmap_role = st.selectbox("Select Specialization Roadmap:", available_roadmaps, index=0)
+
+    roadmap_info = career_advisor.get_career_roadmap(selected_roadmap_role)
+
+    r_col1, r_col2 = st.columns([2, 1])
+    with r_col1:
+        st.markdown(f"### 🚀 {roadmap_info['role']} Career Roadmap")
+        st.caption(f"Market Status: {roadmap_info.get('demand', 'Active')}")
+        st.info(roadmap_info["summary"])
+
+        st.markdown(f"""
+        <div class='roadmap-step'>
+            <h4 style='margin-top:0; color:#38bdf8;'>Phase 1: Foundations & Core Prerequisites</h4>
+            <ul>
+                {''.join([f"<li>{item}</li>" for item in roadmap_info['phase1']])}
+            </ul>
+        </div>
+        <div class='roadmap-step'>
+            <h4 style='margin-top:0; color:#10b981;'>Phase 2: Production Frameworks & Industry Tools</h4>
+            <ul>
+                {''.join([f"<li>{item}</li>" for item in roadmap_info['phase2']])}
+            </ul>
+        </div>
+        <div class='roadmap-step'>
+            <h4 style='margin-top:0; color:#c084fc;'>Phase 3: High-Impact Projects & Production Scalability</h4>
+            <ul>
+                {''.join([f"<li>{item}</li>" for item in roadmap_info['phase3']])}
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with r_col2:
+        st.markdown("### 🏆 Recommended Certifications")
+        for cert in roadmap_info.get("certifications", ["Industry Vendor Certification"]):
+            st.markdown(f"- 🎖️ **{cert}**")
+
+        st.markdown("---")
+        st.markdown("### 💡 Live Role Vacancies")
+        role_jobs = all_jobs[all_jobs["specialization"].str.contains(selected_roadmap_role[:10], case=False, na=False)]
+        st.metric("Open Vacancies in Database", len(role_jobs))
+        if not role_jobs.empty:
+            st.dataframe(
+                role_jobs[["title", "company", "location"]].head(6),
+                use_container_width=True,
+                hide_index=True
+            )
+
+    st.markdown("---")
+    st.subheader(f"🧠 Technical Screening Interview Questions for {roadmap_info['role']}")
+    st.markdown("Curated real-world questions asked in technical screening rounds:")
+
+    for idx, q_item in enumerate(roadmap_info.get("interview_questions", [])):
+        st.markdown(f"""
+        <div class='interview-q'>
+            <b style='color: #38bdf8;'>Q{idx+1}: {q_item['q']}</b>
+            <div style='margin-top: 6px; font-size: 13px; color: #94a3b8;'>
+                💡 <b>Interview Key / Expected Answer:</b> {q_item['hint']}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# Tab 8: Salary Benchmarking & Compensation Analytics
+with tab8:
     st.subheader("💰 Salary Benchmarking & Compensation Intelligence")
     st.markdown("Empirical market compensation estimates and salary bands across technical disciplines and experience levels.")
 
-    # High-level salary KPIs
     explicit_salary_jobs = all_jobs[all_jobs["salary_info"].str.contains(r"\$|\d+|BDT|Tk", case=False, na=False) & ~all_jobs["salary_info"].str.contains("Negotiable", case=False, na=False)]
     
     sk1, sk2, sk3, sk4 = st.columns(4)
@@ -594,8 +849,6 @@ with tab6:
             "🌐 International Remote (USD / Month)"
         ])
 
-    # Compensation formula model
-    # Base multipliers
     role_multipliers = {
         "Machine Learning & AI": 1.35,
         "VLSI / ASIC Design": 1.40,
@@ -615,7 +868,6 @@ with tab6:
             role_mult = r_v
             break
 
-    # Experience base (BDT)
     if "Fresher" in calc_exp:
         base_low, base_med, base_high = 25000, 35000, 48000
         usd_low, usd_med, usd_high = 300, 500, 800
@@ -647,22 +899,21 @@ with tab6:
     <div class='salary-box'>
         <div style='display: flex; justify-content: space-around; text-align: center;'>
             <div>
-                <span style='font-size: 13px; color: #475569;'>25th Percentile (Entry Band)</span>
-                <div style='font-size: 24px; font-weight: bold; color: #0284c7;'>{cur_sym} {low_val:,} / mo</div>
+                <span style='font-size: 13px; color: #94a3b8;'>25th Percentile (Entry Band)</span>
+                <div style='font-size: 24px; font-weight: bold; color: #38bdf8;'>{cur_sym} {low_val:,} / mo</div>
             </div>
-            <div style='border-left: 2px solid #86efac; border-right: 2px solid #86efac; padding: 0 30px;'>
-                <span style='font-size: 13px; color: #15803d; font-weight: bold;'>50th Percentile (Market Median)</span>
-                <div style='font-size: 28px; font-weight: bold; color: #16a34a;'>{cur_sym} {med_val:,} / mo</div>
+            <div style='border-left: 2px solid #059669; border-right: 2px solid #059669; padding: 0 30px;'>
+                <span style='font-size: 13px; color: #34d399; font-weight: bold;'>50th Percentile (Market Median)</span>
+                <div style='font-size: 28px; font-weight: bold; color: #10b981;'>{cur_sym} {med_val:,} / mo</div>
             </div>
             <div>
-                <span style='font-size: 13px; color: #475569;'>75th Percentile (Top Tier / MNC)</span>
-                <div style='font-size: 24px; font-weight: bold; color: #7c3aed;'>{cur_sym} {high_val:,} / mo</div>
+                <span style='font-size: 13px; color: #94a3b8;'>75th Percentile (Top Tier / MNC)</span>
+                <div style='font-size: 24px; font-weight: bold; color: #c084fc;'>{cur_sym} {high_val:,} / mo</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Benchmark ladder chart
     ladder_data = pd.DataFrame([
         {"Tier": "Fresher (0-1Y)", "Min_BDT": int(25000 * role_mult), "Median_BDT": int(35000 * role_mult), "Max_BDT": int(48000 * role_mult)},
         {"Tier": "Junior (1-2Y)", "Min_BDT": int(40000 * role_mult), "Median_BDT": int(55000 * role_mult), "Max_BDT": int(75000 * role_mult)},
@@ -680,12 +931,16 @@ with tab6:
         color="Median_BDT",
         color_continuous_scale="Greens",
         labels={"Median_BDT": "Estimated Compensation (BDT/Month)", "Tier": "Career Progression Tier"},
-        title=f"Compensation Progression Ladder for {calc_spec}"
+        title=f"Compensation Progression Ladder for {calc_spec}",
+        template="plotly_dark"
     )
-    fig_ladder.update_layout(height=420)
+    fig_ladder.update_layout(
+        height=420,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
     st.plotly_chart(fig_ladder, use_container_width=True)
 
-    # Disclosed Salary Postings
     st.markdown("---")
     st.subheader(f"📌 Postings with Explicitly Disclosed Compensation ({len(explicit_salary_jobs)} Posts)")
     if not explicit_salary_jobs.empty:
@@ -701,8 +956,8 @@ with tab6:
     else:
         st.info("Most companies in this region classify salary as 'Negotiable' upon interview.")
 
-# Tab 7: 3-Day Link Health, Executive Reports & Email Digest
-with tab7:
+# Tab 9: Link Health, Executive Reports & Email Digest
+with tab9:
     st.subheader("🔄 3-Day Link Verification, Executive Reports & Email Digest")
 
     col_h1, col_h2 = st.columns(2)
@@ -755,7 +1010,6 @@ with tab7:
 
     with ed_col1:
         st.markdown("##### ⚙️ Digest Configuration Status")
-        import os
         smtp_configured = bool(os.environ.get("SMTP_SERVER") and os.environ.get("SMTP_USER"))
         if smtp_configured:
             st.success("✔ SMTP credentials detected in environment!")

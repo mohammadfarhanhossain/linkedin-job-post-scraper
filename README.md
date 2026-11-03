@@ -23,22 +23,29 @@
    - Configured with WAL (`Write-Ahead Logging`) mode and busy-timeout protection for concurrent reads/writes.
    - Deduplicates posts automatically across platforms, tracks first-seen/last-seen timestamps, and stores extracted skills, salaries, and experience levels.
 
-4. **Multi-Tab Interactive Web Dashboard (`dashboard.py`)**:
-   - **Tab 1: Sector Trends**: Tracks whether vacancies are increasing (bartese) vs decreasing (komtese) across specializations.
+4. **Sleek Dark Mode Interactive Web Dashboard (`dashboard.py`)**:
+   - Engineered with a high-contrast dark palette (`#0b0f19` deep slate & neon cyan/emerald accents) and dark-themed Plotly graphs.
+   - **Tab 1: Sector & Role Trends**: Tracks whether vacancies are increasing (bartese) vs decreasing (komtese) across specializations.
    - **Tab 2: In-Demand Skills Analytics**: Extracts and ranks top tools, frameworks, and programming languages.
    - **Tab 3: Company Recruitment & Tech-Stack Intelligence**:
      - Visualizes top hiring organizations.
      - **Interactive Tech-Stack Profiler**: Inspect any employer (e.g. Brain Station 23, Therap, Enosis, Walton) to view their required technical stack, role distribution, and open positions.
    - **Tab 4: Browse All Vacancies & Custom Filtered Excel Download**:
-     - Filter by Domain, Category, Specialization, Experience, and Status.
+     - Filter by Domain, Category, Specialization, Experience, Status, and **⚡ Fresh Drops (< 48h)**.
      - **1-Click Instant Download**: Exports the currently filtered search result directly as a custom formatted `.xlsx` spreadsheet in memory!
-   - **Tab 5: Smart Resume / CV Matcher**:
-     - Upload PDF resume to get match scores, skill gap analysis, and tailored job recommendations with direct apply links.
-   - **Tab 6: Salary Benchmarking & Compensation Intelligence**:
+   - **Tab 5: Geographic Distribution & Regional Hubs Heatmap**:
+     - Visual breakdown across Bangladesh Administrative Divisions (Dhaka, Chattogram, Sylhet, etc.) and Global Remote Tech Hubs (North America, Europe, APAC, Middle East).
+   - **Tab 6: Smart Resume / CV Matcher & AI Application Pitch Generator**:
+     - PDF resume upload with match scores, skill gap analysis, and tailored job recommendations with direct apply links.
+     - **AI Cover Letter & LinkedIn Recruiter Outreach Pitch Generator**: Generates customized application letters and crisp cold DM outreach messages.
+   - **Tab 7: Career Pathways, Skill Roadmaps & Interview Question Bank**:
+     - 3-Phase structured roadmap (Foundations, Production Tools, High-Impact Projects) for ML, Backend, DevOps, VLSI, Full Stack, etc.
+     - Curated real-world technical interview screening questions and key hints.
+   - **Tab 8: Salary Benchmarking & Compensation Intelligence**:
      - Interactive compensation calculator for Bangladesh Domestic (BDT/mo) and International Remote (USD/mo).
      - Compensation ladder across experience tiers (Fresher, Junior, Mid, Senior, Lead).
      - Filterable list of postings with explicit salary figures.
-   - **Tab 7: 3-Day Link Health, Executive Reports & Email Digest**:
+   - **Tab 9: Link Health, Executive Reports & Email Digest**:
      - Active vs expired URL verification.
      - Printable ReportLab executive PDF report generator.
      - Morning Email Digest preview and send center.
