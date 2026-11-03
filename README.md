@@ -1,106 +1,172 @@
-# 💼 LinkedIn Job Post Scraper & Monthly Trend Tracker
-*Multi-Industry Real-Time Vacancy Scraping, Database Tracking ebong Monthly Market Trend Comparison System.*
+# 💼 Multi-Platform Job Market Intelligence & Trend Tracker
+*LinkedIn, BDJobs & Indeed Real-Time Vacancy Harvester, 3-Tier Granular Taxonomy, Executive Analytics & Cloud Automation.*
+
+[![Daily Scrape Workflow](https://github.com/mohammadfarhanhossain/linkedin-job-post-scraper/actions/workflows/daily_scrape.yml/badge.svg)](https://github.com/mohammadfarhanhossain/linkedin-job-post-scraper/actions)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/)
 
 ---
 
-## 📌 Features & Highlights
+## 📌 Core Architecture & Key Capabilities
 
-1. **Title-Wise Dynamic Classification (Actual Job Title onujayi Categorization)**:
-   - Job post gulo r generic "CSE", "EEE", "Civil" academic bucket-e jabe na!
-   - Protita job post-er **Original Title** analyse kore specific industrial & technical domain-e classify kora hoy:
-     - ⚡ **Power, Energy & Electrical** (Power Plant, Substation, High Voltage, MEP, Transformer, Grid)
-     - 🔌 **VLSI, Hardware & Embedded Systems** (VLSI, FPGA, PCB Designer, Firmware, Embedded, IoT)
-     - 🏗️ **Construction, Civil & Real Estate** (Structural, Civil Engineer, Site Engineer, Geotechnical, BIM)
-     - 🏭 **Manufacturing, Production & Industrial** (Production, Industrial, Mechanical, Maintenance, Plant)
-     - 🧵 **Textile, Garments & Apparel** (Textile Engineer, Garments Merchandiser, Dyeing, Apparel)
-     - 💻 **Software & Web Engineering** (Full Stack, Backend, Frontend, Python, Java, Golang, .NET)
-     - 🤖 **AI, Machine Learning & Data** (Data Scientist, AI Engineer, ML, Data Analyst)
-     - ☁️ **Cloud, DevOps & Infrastructure** (DevOps, Cloud Engineer, System Admin, SRE)
-     - 🛡️ **Cybersecurity & Networks** (SOC Analyst, Information Security, Network Engineer, Cisco)
-     - 🧪 **Quality Assurance (SQA)** (SQA Engineer, Automation Tester, QA Lead)
-     - 📱 **Mobile App Development** (Flutter, Android, iOS, React Native)
-     - 📡 **Telecommunications & ISP** (Telecom, Optical Fiber, RF, NOC)
-     - ✈️ **Aviation, Marine & Automotive** (CAMO Engineer, Aircraft Technical, Marine)
-     - 📦 **Supply Chain & Logistics** (Supply Chain, Procurement, Logistics, Warehouse)
-     - 🎨 **Design, UI/UX & Creative** (UI/UX Designer, Graphic Designer, Video Editor)
-     - 💰 **Finance, Accounting & Tax** (Core Banking, Accounts, Tax, VAT, Audit)
-     - 👥 **HR & Talent Acquisition** (HR Executive, Recruiter, Admin)
+1. **Multi-Platform Scraping Engine (`scraper.py`)**:
+   - Collects vacancies across **LinkedIn**, **BDJobs**, and **Indeed** using anti-blocking impersonation.
+   - Dual-geographic scope: Dedicated **Bangladesh Domestic Market** and **International Remote / Worldwide**.
 
-2. **Master SQLite Database (`data/jobs.db`)**:
-   - Shob job post automatic deduplicate hoy (ekoi job 2 bar count hobe na).
-   - Protita job-er Title, Company, Location, Date Posted, Sector Domain, Specialization, Job URL o First/Last seen date track hoy.
+2. **3-Tier Title-Driven Taxonomy (`classifier.py`)**:
+   - Classifies every job dynamically by its actual job title:
+     - **Tier 1 (Subject Field / Domain)**: Software & Web, AI & Data, VLSI & Hardware, Power & Energy, Civil & Construction, Manufacturing, Textile, Telecommunications, SQA, Cybersecurity, Finance, HR.
+     - **Tier 2 (Functional Category)**: Core Development, Infrastructure, Chip Design, Quality Control, etc.
+     - **Tier 3 (Granular Specialization)**: Machine Learning & AI, Python/FastAPI Backend, React/Next.js, Spring Boot, Flutter, Embedded Firmware, DevOps/SRE, Substation/MEP, etc.
 
-3. **Daily Scraped Report File**:
-   - Protidin scrape korar sathe sathe Excel (`.xlsx`) ebong CSV (`.csv`) file toiri hoy:
-     - `reports/daily/daily_jobs_YYYY-MM-DD.xlsx`
-     - Tab 1: **All Vacancies** (direct LinkedIn post link shoh)
-     - Tab 2: **Category Summary** (Power, Construction, VLSI, Software, Manufacturing er kontay koyta vacancy)
-     - Tab 3: **Top Companies Hiring** (kon company koyta post dise)
+3. **Master Concurrency-Safe SQLite Database (`data/jobs.db`)**:
+   - Configured with WAL (`Write-Ahead Logging`) mode and busy-timeout protection for concurrent reads/writes.
+   - Deduplicates posts automatically across platforms, tracks first-seen/last-seen timestamps, and stores extracted skills, salaries, and experience levels.
 
-4. **Monthly Trend Comparison ("kontar post bartese kontar komtese")**:
-   - Current Month vs Previous Month (ba Last 30 Days vs Prior 30 Days) comparison:
-     - **Sector Trends**: Kontar recruitment barchhe (🚀 Increasing), kontar komchhe (🔻 Decreasing), % Growth koto.
-     - **Company Recruitment Trends**: Kon company recruitment barachhe o komachhe.
-     - **Visual Charts**: Automatic high-resolution charts (`reports/monthly/charts/`):
-       - `latest_category_trends.png`
-       - `latest_top_companies.png`
-     - **Monthly Reports**:
-       - Excel: `reports/monthly/monthly_trend_report_YYYY-MM.xlsx`
-       - Interactive HTML: Browser e open korle graph, table o summary shundor kore dekhabe!
+4. **Multi-Tab Interactive Web Dashboard (`dashboard.py`)**:
+   - **Tab 1: Sector Trends**: Tracks whether vacancies are increasing (bartese) vs decreasing (komtese) across specializations.
+   - **Tab 2: In-Demand Skills Analytics**: Extracts and ranks top tools, frameworks, and programming languages.
+   - **Tab 3: Company Recruitment & Tech-Stack Intelligence**:
+     - Visualizes top hiring organizations.
+     - **Interactive Tech-Stack Profiler**: Inspect any employer (e.g. Brain Station 23, Therap, Enosis, Walton) to view their required technical stack, role distribution, and open positions.
+   - **Tab 4: Browse All Vacancies & Custom Filtered Excel Download**:
+     - Filter by Domain, Category, Specialization, Experience, and Status.
+     - **1-Click Instant Download**: Exports the currently filtered search result directly as a custom formatted `.xlsx` spreadsheet in memory!
+   - **Tab 5: Smart Resume / CV Matcher**:
+     - Upload PDF resume to get match scores, skill gap analysis, and tailored job recommendations with direct apply links.
+   - **Tab 6: Salary Benchmarking & Compensation Intelligence**:
+     - Interactive compensation calculator for Bangladesh Domestic (BDT/mo) and International Remote (USD/mo).
+     - Compensation ladder across experience tiers (Fresher, Junior, Mid, Senior, Lead).
+     - Filterable list of postings with explicit salary figures.
+   - **Tab 7: 3-Day Link Health, Executive Reports & Email Digest**:
+     - Active vs expired URL verification.
+     - Printable ReportLab executive PDF report generator.
+     - Morning Email Digest preview and send center.
 
-5. **Interactive Web Dashboard (Streamlit - port 8501)**:
-   - Visual web interface: KPI metrics, dynamic charts, searchable tables, industry sector filters, and CSV/Excel download.
-   - **Market Scope Filter**: Bangladesh (Local) vs Worldwide / Global (Remote) toggle.
-   - **3-Tier Cascading Filter**: Subject Field -> Category -> Granular Specialization.
+5. **Daily Morning Email Digest (`email_digest.py`)**:
+   - Compiles daily market statistics, top sector breakdown, trending skills, and featured vacancies with clickable apply links into a responsive HTML email.
+   - Automatically attaches the generated daily Excel report (`daily_jobs_YYYY-MM-DD.xlsx`).
+   - Supports SMTP (Gmail, Outlook, SendGrid, etc.) with SSL/TLS.
 
-6. **Smart Resume / CV Matcher (`resume_matcher.py`)**:
-   - PDF Resume drag-and-drop support.
-   - Profile skills analysis, experience extraction, and percentage match ranking against active vacancies with direct apply links.
+6. **Free Cloud Automation (GitHub Actions)**:
+   - Configured via `.github/workflows/daily_scrape.yml`.
+   - Runs automatically every night at 00:00 UTC (06:00 AM BST), harvests fresh jobs, compiles reports, and commits updates back to GitHub without needing your computer turned on.
 
-7. **3-Day Active Link Verification (`link_checker.py`)**:
-   - Automatically tests HTTP response and redirection of scraped posts every 3 days.
-   - Marks live vacancies as `Active` and closed/removed posts as `Expired`.
-
-8. **Executive Printable PDF Report (`pdf_reporter.py`)**:
-   - Generates a publication-quality PDF report with executive KPI cards, domain breakdown tables, in-demand technical skills, and top employer recruitment velocity.
-
-9. **1-Click / Automated Daily Scheduling**:
-   - `run_daily.bat`: 1-click execution for daily scraping and reporting.
-   - `start_dashboard.bat`: 1-click startup for the web dashboard.
-   - `schedule_daily_task.bat`: Windows Task Scheduler automation to scrape every morning at 9:00 AM.
-   - `harvest_more_jobs.bat`: High-yield scraper that sweeps broad roles to scale up vacancies into thousands.
+7. **Streamlit Community Cloud Deployment Ready**:
+   - Ready to deploy in 1 click using the `.streamlit/config.toml` configuration and `requirements.txt`.
 
 ---
 
-## 🚀 How to Use
+## 🚀 Quick Start Guide
 
-### 1. Daily Scraping Run (CLI)
+### 1. Local Environment Setup
 ```powershell
-.venv\Scripts\python.exe main.py scrape --mode quick
-```
-*Tips: `--mode full` dile shob categorised role scrape korbe. `--mode deep` division cities sweep korbe.*
+# Clone the repository
+git clone https://github.com/mohammadfarhanhossain/linkedin-job-post-scraper.git
+cd "linkedin-job-post-scraper"
 
-### 2. High-Yield Mega Harvester (Scale to 1,500 - 2,000+ Vacancies)
-```powershell
-.venv\Scripts\python.exe mega_harvest.py
+# Activate Python Virtual Environment
+.venv\Scripts\activate
+
+# Install Dependencies
+pip install -r requirements.txt
 ```
 
-### 3. View Monthly Trend Report (kontar post bartese / komtese)
-```powershell
-.venv\Scripts\python.exe main.py monthly
-```
-Eta run korle `reports\monthly\` ফোল্ডারে তৈরি হবে:
-- `monthly_trend_report_YYYY-MM.xlsx`
-- `monthly_trend_report_YYYY-MM.html` (Interactive web preview)
-- `executive_job_market_report_YYYY-MM.pdf` (Printable Executive PDF)
-
-### 4. Open Web Dashboard
+### 2. Launching the Web Dashboard
+Double-click `start_dashboard.bat` or run:
 ```powershell
 .venv\Scripts\python.exe -m streamlit run dashboard.py
 ```
-Ba shudhu `start_dashboard.bat` file-ti double-click korun! Browser-e `http://localhost:8501` automatically open hoye jabe.
+Open **`http://localhost:8501`** in your browser.
 
-### 5. Check Active Status of Job Links
+### 3. Running Daily Scrape & Full Pipeline
+Double-click `run_daily.bat` or run:
 ```powershell
-.venv\Scripts\python.exe main.py check-links
+.venv\Scripts\python.exe automation_runner.py
 ```
+This runs:
+1. Multi-platform scrape (LinkedIn + BDJobs)
+2. 3-day link verification check
+3. Multi-tab daily Excel report compilation (`reports/daily/`)
+4. Executive printable PDF report generation (`reports/monthly/`)
+5. Daily morning email digest
+
+### 4. Running Specialized Scrapers
+- **CSE & Software Specialization Sweep**:
+  ```powershell
+  .venv\Scripts\python.exe harvest_cse.py
+  ```
+- **High-Yield Mega Harvester (1,500 - 2,500+ Jobs)**:
+  ```powershell
+  .venv\Scripts\python.exe mega_harvest.py
+  ```
+
+---
+
+## 🌐 Deploying to Streamlit Community Cloud (Free 24/7 Hosting)
+
+You can host your dashboard live on the internet for free so you can access it from your phone or any computer:
+
+1. Push your repository to your GitHub account (`mohammadfarhanhossain/linkedin-job-post-scraper`).
+2. Go to **[share.streamlit.io](https://share.streamlit.io/)** and sign in with your GitHub account.
+3. Click **"New app"**.
+4. Select your repository: `mohammadfarhanhossain/linkedin-job-post-scraper`.
+5. Set:
+   - **Branch:** `main`
+   - **Main file path:** `dashboard.py`
+6. Click **"Deploy!"**.
+7. In a minute, your dashboard will be live at `https://your-app-name.streamlit.app`!
+
+---
+
+## ⚙️ Configuring Daily Email Digest & GitHub Actions Secrets
+
+To enable live email delivery via GitHub Actions or locally, configure the following secrets/environment variables:
+
+| Secret Name | Description | Example |
+|---|---|---|
+| `SMTP_SERVER` | SMTP Host | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP Port | `587` |
+| `SMTP_USER` | Sending Email Address | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | App Password (not normal password) | `abcd efgh ijkl mnop` |
+| `DIGEST_RECIPIENT_EMAIL` | Destination Email Address | `recipient@example.com` |
+
+> **Note:** If SMTP credentials are not configured, the system automatically runs in **Preview Mode**, generating an interactive HTML preview at `reports/daily/daily_email_digest_preview.html`.
+
+---
+
+## 📁 Repository Directory Structure
+
+```text
+├── .github/
+│   └── workflows/
+│       └── daily_scrape.yml           # GitHub Actions daily automated cron pipeline
+├── .streamlit/
+│   └── config.toml                    # Streamlit Cloud deployment & theme configuration
+├── data/
+│   └── jobs.db                        # SQLite Database with WAL mode & indexes (2,050+ vacancies)
+├── reports/
+│   ├── daily/                         # Multi-tab Excel reports & email HTML previews
+│   └── monthly/                       # Executive printable PDF reports & trend charts
+├── automation_runner.py               # Master daily automation orchestrator
+├── classifier.py                      # 3-tier dynamic title classifier
+├── config.py                          # Scraping parameters, sectors, and locations
+├── dashboard.py                       # 7-Tab Streamlit web intelligence dashboard
+├── database.py                        # SQLite engine, company profiler, and aggregations
+├── email_digest.py                    # Daily morning HTML email digest with Excel attachment
+├── harvest_cse.py                     # Specialized CSE role harvester
+├── mega_harvest.py                    # High-volume multi-partition harvester
+├── link_checker.py                    # 3-day active link verification engine
+├── pdf_reporter.py                    # ReportLab executive PDF generator
+├── reporter.py                        # Daily & monthly multi-tab Excel generator
+├── resume_matcher.py                  # Smart CV PDF parsing & match score algorithm
+├── scraper.py                         # Multi-platform scraper (LinkedIn, BDJobs, Indeed)
+├── skills_extractor.py                # Regex & NLP skill and compensation extractor
+├── run_daily.bat                      # 1-click daily automation runner
+└── start_dashboard.bat                # 1-click web dashboard launcher
+```
+
+---
+
+## 📄 License & Attribution
+Designed and built for automated industrial market intelligence, data-driven recruitment tracking, and candidate career matching.

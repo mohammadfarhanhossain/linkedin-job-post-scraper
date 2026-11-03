@@ -46,6 +46,10 @@ SCRAPE_SETTINGS = {
     # Hours old: 720 hours = last 30 days (captures all currently active live vacancies)
     "hours_old": 720,
     
+    # Multi-Platform Scraping Targets (LinkedIn, BDJobs, Indeed)
+    "supported_sites": ["linkedin", "bdjobs", "indeed"],
+    "default_sites": ["linkedin", "bdjobs"],
+    
     # Delay between requests in seconds to stay under LinkedIn's radar
     "request_delay_min": 3,
     "request_delay_max": 6,

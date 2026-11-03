@@ -535,3 +535,79 @@ def get_top_skills_by_sector(field: Optional[str] = None, limit: int = 15) -> pd
     df = pd.DataFrame(list(skill_counts.items()), columns=["Skill", "Job_Count"])
     df = df.sort_values(by="Job_Count", ascending=False).head(limit)
     return df
+
+
+def get_company_tech_stack(company_name: str) -> Dict[str, Any]:
+    """
+    Extracts tech stack, specializations, locations, and open jobs for a specific company.
+    Enables deep employer intelligence profiling.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, title, specialization, category, field, location, skills, experience_level, salary_info, status, date_posted, job_url
+        FROM jobs 
+        WHERE company = ? OR company LIKE ?
+        ORDER BY first_seen_date DESC
+    """, (company_name, f"%{company_name}%"))
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        return {
+            "company": company_name,
+            "total_jobs": 0,
+            "skills_df": pd.DataFrame(columns=["Skill", "Count"]),
+            "specializations_df": pd.DataFrame(columns=["Specialization", "Count"]),
+            "experience_df": pd.DataFrame(columns=["Experience_Level", "Count"]),
+            "locations_df": pd.DataFrame(columns=["Location", "Count"]),
+            "jobs": []
+        }
+
+    job_records = [dict(r) for r in rows]
+
+    # Skill counts
+    skill_counts: Dict[str, int] = {}
+    for r in job_records:
+        s_raw = r.get("skills", "")
+        if s_raw:
+            for s in s_raw.split(","):
+                s_clean = s.strip()
+                if s_clean:
+                    skill_counts[s_clean] = skill_counts.get(s_clean, 0) + 1
+
+    skills_df = pd.DataFrame(list(skill_counts.items()), columns=["Skill", "Count"])
+    if not skills_df.empty:
+        skills_df = skills_df.sort_values(by="Count", ascending=False).head(20)
+
+    # Specializations
+    spec_counts: Dict[str, int] = {}
+    for r in job_records:
+        spec = r.get("specialization") or "General"
+        spec_counts[spec] = spec_counts.get(spec, 0) + 1
+    specs_df = pd.DataFrame(list(spec_counts.items()), columns=["Specialization", "Count"]).sort_values(by="Count", ascending=False)
+
+    # Experience
+    exp_counts: Dict[str, int] = {}
+    for r in job_records:
+        exp = r.get("experience_level") or "Not Specified"
+        exp_counts[exp] = exp_counts.get(exp, 0) + 1
+    exp_df = pd.DataFrame(list(exp_counts.items()), columns=["Experience_Level", "Count"]).sort_values(by="Count", ascending=False)
+
+    # Locations
+    loc_counts: Dict[str, int] = {}
+    for r in job_records:
+        loc = r.get("location") or "Unknown"
+        loc_counts[loc] = loc_counts.get(loc, 0) + 1
+    loc_df = pd.DataFrame(list(loc_counts.items()), columns=["Location", "Count"]).sort_values(by="Count", ascending=False)
+
+    return {
+        "company": company_name,
+        "total_jobs": len(job_records),
+        "skills_df": skills_df,
+        "specializations_df": specs_df,
+        "experience_df": exp_df,
+        "locations_df": loc_df,
+        "jobs": job_records
+    }
+

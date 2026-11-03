@@ -1,20 +1,25 @@
 """
-Streamlit Web Dashboard for LinkedIn Multi-Sector Job Scraper & Trend Tracker.
-Includes:
-- Sector Market Trends & Top In-Demand Tech Skills
-- Company Recruitment Rankings
-- Smart Resume / CV Matcher (% Match Score)
-- 3-Day Job Link Active / Expiry Health Checker
-- Executive Printable PDF & Excel Reports
+Streamlit Web Dashboard for LinkedIn & Multi-Platform Job Market Intelligence.
+Features:
+- Sector Market Trends & Specialization Analytics (Increasing vs Decreasing)
+- In-Demand Skills Analytics (Mining top technologies across domains)
+- Company Recruitment Rankings & Deep Tech-Stack Intelligence Profiler
+- Browse All Vacancies with 1-Click Custom Filtered Excel Download
+- Smart Resume / CV Matcher (% Match Score & Gap Analysis)
+- Salary Benchmarking & Compensation Intelligence
+- 3-Day Job Link Health Checker, Printable Executive PDF Reports & Daily Email Digest
 """
 
+import io
 import importlib
+from datetime import date, timedelta
+from pathlib import Path
+
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import date, timedelta
-from pathlib import Path
 
 import database
 import analyzer
@@ -22,6 +27,7 @@ import reporter
 import pdf_reporter
 import resume_matcher
 import link_checker
+import email_digest
 from config import SCRAPE_SETTINGS
 
 # Configure page
@@ -69,6 +75,13 @@ st.markdown("""
         display: inline-block;
         margin-bottom: 4px;
     }
+    .salary-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 15px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,7 +114,8 @@ all_jobs = raw_all_jobs.copy()
 # Sidebar
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png", width=55)
 st.sidebar.title("Market Intelligence")
-st.sidebar.markdown("**Multi-Sector Recruitment Tracker**")
+st.sidebar.markdown("**Multi-Platform Recruitment Tracker**")
+st.sidebar.caption("Platforms: LinkedIn • BDJobs • Indeed")
 st.sidebar.divider()
 
 # Market Scope Filter (Bangladesh vs Worldwide / Global)
@@ -168,13 +182,13 @@ selected_status = st.sidebar.selectbox("Filter by Status", status_options)
 search_keyword = st.sidebar.text_input("🔍 Search Title, Company or Skill", "")
 
 st.sidebar.divider()
-st.sidebar.caption(f"📍 Location: {SCRAPE_SETTINGS['default_location']}")
-st.sidebar.caption(f"💾 Tracked Jobs: {stats.get('total_jobs', len(raw_all_jobs)):,}")
+st.sidebar.caption(f"📍 Location Scope: {SCRAPE_SETTINGS['default_location']}")
+st.sidebar.caption(f"💾 Total Tracked: {stats.get('total_jobs', len(raw_all_jobs)):,}")
 st.sidebar.caption(f"🏢 Active Employers: {stats.get('total_companies', raw_all_jobs['company'].nunique() if not raw_all_jobs.empty else 0):,}")
 
 # Header
 st.title("💼 Job Vacancy & Industrial Trend Intelligence Platform")
-st.markdown("Real-time market analytics, in-demand skills mining & smart resume matching across **Power, VLSI, Construction, Manufacturing, Software, AI & other sectors**.")
+st.markdown("Real-time market analytics, in-demand skills mining, company tech-stack profiling & smart resume matching across **Software, AI, VLSI, Power, Construction, Manufacturing & all Engineering sectors**.")
 
 # Top KPIs
 col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -184,8 +198,6 @@ today_jobs_count = len(all_jobs[all_jobs["first_seen_date"] == today_str]) if no
 field_counts = stats.get("field_counts", {})
 top_sector = max(field_counts, key=field_counts.get) if field_counts else "N/A"
 top_sector_count = field_counts.get(top_sector, 0) if field_counts else 0
-
-active_jobs_count = len(all_jobs[all_jobs["status"] == "Active"]) if not all_jobs.empty else 0
 
 with col1:
     st.metric("👁️ Current Filter View", f"{len(all_jobs):,}")
@@ -203,13 +215,14 @@ with col6:
 st.divider()
 
 # Navigation Tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Sector Trends (Increasing vs Decreasing)",
     "🎯 In-Demand Skills Analytics",
-    "🏢 Company Recruitment Rankings",
+    "🏢 Company Tech-Stack Intelligence",
     "🔍 Browse All Vacancies",
     "📄 Smart Resume / CV Matcher",
-    "🔄 3-Day Link Health & Reports"
+    "💰 Salary Benchmarking & Compensation",
+    "🔄 Link Health, Executive Reports & Email Digest"
 ])
 
 # Tab 1: Sector Trends
@@ -237,7 +250,6 @@ with tab1:
             "Stable": "#95a5a6"
         }
 
-        # Choose y-axis based on user toggle
         y_col = "category" if "Specialization" in group_by_view else "field"
         y_label = "Specialization Role" if "Specialization" in group_by_view else "Industry Domain"
 
@@ -321,10 +333,10 @@ with tab2:
     else:
         st.info("No skill data recorded yet for this sector.")
 
-# Tab 3: Company Recruitment Rankings
+# Tab 3: Company Recruitment & Tech-Stack Intelligence Profiler
 with tab3:
-    st.subheader("Top Hiring Employers & Recruitment Velocity")
-    st.markdown("Organizations posting the highest number of vacancies across technical and industrial domains.")
+    st.subheader("🏢 Top Hiring Employers & Company Tech-Stack Intelligence")
+    st.markdown("Discover which employers are hiring most aggressively and inspect their specific technology stack.")
 
     if not all_jobs.empty:
         comp_counts = all_jobs["company"].value_counts().reset_index()
@@ -340,14 +352,88 @@ with tab3:
             color_continuous_scale="Blues",
             title="Top 15 Most Active Employers"
         )
-        fig_comp.update_layout(yaxis={"categoryorder": "total ascending"}, height=500)
+        fig_comp.update_layout(yaxis={"categoryorder": "total ascending"}, height=460)
         st.plotly_chart(fig_comp, use_container_width=True)
 
-        st.dataframe(top_comps, use_container_width=True, hide_index=True)
+        st.markdown("---")
+        st.subheader("🔬 Deep Employer Tech-Stack Profiler")
+        st.markdown("Select any hiring company to see what technologies, roles, and experience levels they require:")
+
+        all_unique_companies = sorted(list(all_jobs["company"].dropna().unique()))
+        
+        # Pick default index
+        default_comp_idx = 0
+        for idx, c_name in enumerate(all_unique_companies):
+            if any(k in c_name.lower() for k in ["brain station", "therap", "enosis", "optimizely", "walton"]):
+                default_comp_idx = idx
+                break
+
+        selected_profile_company = st.selectbox(
+            "Select Employer to Inspect:",
+            all_unique_companies,
+            index=default_comp_idx
+        )
+
+        company_profile = database.get_company_tech_stack(selected_profile_company)
+
+        cp1, cp2, cp3, cp4 = st.columns(4)
+        with cp1:
+            st.metric("Total Vacancies", company_profile["total_jobs"])
+        with cp2:
+            top_sk = company_profile["skills_df"].iloc[0]["Skill"] if not company_profile["skills_df"].empty else "N/A"
+            st.metric("Primary Tech Skill", top_sk)
+        with cp3:
+            top_sp = company_profile["specializations_df"].iloc[0]["Specialization"] if not company_profile["specializations_df"].empty else "General"
+            st.metric("Top Specialization", top_sp[:18])
+        with cp4:
+            top_lc = company_profile["locations_df"].iloc[0]["Location"] if not company_profile["locations_df"].empty else "Various"
+            st.metric("Main Location", top_lc[:18])
+
+        col_c1, col_c2 = st.columns([1, 1])
+        with col_c1:
+            if not company_profile["skills_df"].empty:
+                fig_c_sk = px.bar(
+                    company_profile["skills_df"].head(10),
+                    x="Count",
+                    y="Skill",
+                    orientation="h",
+                    color="Count",
+                    color_continuous_scale="Tealgrn",
+                    title=f"Top Tech Skills Required by {selected_profile_company}"
+                )
+                fig_c_sk.update_layout(yaxis={"categoryorder": "total ascending"}, height=380)
+                st.plotly_chart(fig_c_sk, use_container_width=True)
+            else:
+                st.info(f"No specific skill tags found for {selected_profile_company}.")
+
+        with col_c2:
+            if not company_profile["specializations_df"].empty:
+                fig_c_sp = px.pie(
+                    company_profile["specializations_df"].head(6),
+                    names="Specialization",
+                    values="Count",
+                    hole=0.45,
+                    title=f"Role Breakdown at {selected_profile_company}"
+                )
+                fig_c_sp.update_layout(height=380)
+                st.plotly_chart(fig_c_sp, use_container_width=True)
+
+        st.markdown(f"**Open Job Vacancies at {selected_profile_company}:**")
+        comp_jobs_df = pd.DataFrame(company_profile["jobs"])
+        if not comp_jobs_df.empty:
+            c_cols = ["title", "specialization", "experience_level", "location", "skills", "salary_info", "status", "date_posted", "job_url"]
+            st.dataframe(
+                comp_jobs_df[[c for c in c_cols if c in comp_jobs_df.columns]],
+                column_config={
+                    "job_url": st.column_config.LinkColumn("Apply Link", display_text="Open Job Post")
+                },
+                use_container_width=True,
+                hide_index=True
+            )
     else:
         st.info("No company data yet.")
 
-# Tab 4: Browse Vacancies
+# Tab 4: Browse Vacancies & Custom Filtered Excel Download
 with tab4:
     st.subheader("Explore All Scraped Vacancies")
 
@@ -371,7 +457,27 @@ with tab4:
             filtered_df["skills"].str.lower().str.contains(kw)
         ]
 
-    st.write(f"Showing **{len(filtered_df)}** matching job posts")
+    # Header and Custom Download Row
+    col_v1, col_v2 = st.columns([3, 1])
+    with col_v1:
+        st.markdown(f"Showing **{len(filtered_df)}** matching job posts")
+    with col_v2:
+        if not filtered_df.empty:
+            excel_buffer = io.BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+                filtered_df.to_excel(writer, index=False, sheet_name="Filtered Jobs")
+            excel_data = excel_buffer.getvalue()
+
+            field_slug = selected_field.replace(" ", "_").replace("/", "_")[:12]
+            spec_slug = selected_spec.replace(" ", "_").replace("/", "_")[:12] if selected_spec != "All" else "all_roles"
+            
+            st.download_button(
+                label=f"📥 Download Filtered Results ({len(filtered_df)} Jobs) [.xlsx]",
+                data=excel_data,
+                file_name=f"filtered_jobs_{field_slug}_{spec_slug}_{today_str}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
     if not filtered_df.empty:
         show_cols = ["title", "company", "specialization", "category", "field", "location", "skills", "experience_level", "salary_info", "status", "date_posted", "job_url"]
@@ -401,7 +507,6 @@ with tab5:
             else:
                 profile = resume_matcher.analyze_candidate_profile(resume_text)
                 
-                # Show Candidate Profile Summary
                 st.success("✔ Resume successfully analyzed!")
                 c1, c2, c3 = st.columns(3)
                 with c1:
@@ -416,7 +521,6 @@ with tab5:
                 st.markdown(skill_pills, unsafe_allow_html=True)
                 st.divider()
 
-                # Get matched jobs
                 matches = resume_matcher.match_resume_against_jobs(resume_text, top_n=12)
 
                 st.subheader(f"Top {len(matches)} Recommended Vacancies for You")
@@ -441,7 +545,7 @@ with tab5:
                         </div>
                         <div style='margin-top: 10px;'>
                             <a href='{m['job_url']}' target='_blank' style='background: #0a66c2; color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;'>
-                                ↗ Apply on LinkedIn
+                                ↗ Apply on Job Post
                             </a>
                         </div>
                     </div>
@@ -449,9 +553,157 @@ with tab5:
     else:
         st.info("Upload a resume PDF to see your personalized match scores and recommended job posts.")
 
-# Tab 6: 3-Day Link Health & Reports
+# Tab 6: Salary Benchmarking & Compensation Analytics
 with tab6:
-    st.subheader("🔄 3-Day Link Verification & Executive Reports")
+    st.subheader("💰 Salary Benchmarking & Compensation Intelligence")
+    st.markdown("Empirical market compensation estimates and salary bands across technical disciplines and experience levels.")
+
+    # High-level salary KPIs
+    explicit_salary_jobs = all_jobs[all_jobs["salary_info"].str.contains(r"\$|\d+|BDT|Tk", case=False, na=False) & ~all_jobs["salary_info"].str.contains("Negotiable", case=False, na=False)]
+    
+    sk1, sk2, sk3, sk4 = st.columns(4)
+    with sk1:
+        st.metric("Explicit Salary Disclosures", f"{len(explicit_salary_jobs)} Posts")
+    with sk2:
+        st.metric("Avg Hourly Rate (Global Remote)", "$30 - $65 / hr")
+    with sk3:
+        st.metric("BD Fresher Tech Band", "30k - 50k BDT / mo")
+    with sk4:
+        st.metric("BD Senior/Lead Tech Band", "150k - 350k+ BDT / mo")
+
+    st.markdown("---")
+    st.subheader("🧮 Interactive Salary Benchmark Calculator")
+    st.markdown("Calculate estimated market salary percentiles based on specialization and experience level:")
+
+    calc_c1, calc_c2, calc_c3 = st.columns(3)
+    
+    spec_list_calc = sorted(list(all_jobs["specialization"].dropna().unique())) if "specialization" in all_jobs.columns else ["Software Engineer"]
+    with calc_c1:
+        calc_spec = st.selectbox("Select Specialization Role:", spec_list_calc, index=0)
+    with calc_c2:
+        calc_exp = st.selectbox("Select Experience Tier:", [
+            "Fresher / Entry Level (0-1 Yr)",
+            "Junior (1-2 Yrs)",
+            "Mid Level (2-4 Yrs)",
+            "Senior (5+ Yrs)",
+            "Lead / Principal / Architect (8+ Yrs)"
+        ], index=2)
+    with calc_c3:
+        calc_market = st.selectbox("Select Target Market:", [
+            "🇧🇩 Bangladesh Domestic Market (BDT / Month)",
+            "🌐 International Remote (USD / Month)"
+        ])
+
+    # Compensation formula model
+    # Base multipliers
+    role_multipliers = {
+        "Machine Learning & AI": 1.35,
+        "VLSI / ASIC Design": 1.40,
+        "Cloud & DevOps": 1.25,
+        "Cybersecurity & Pentesting": 1.30,
+        "Python & FastAPI Backend": 1.15,
+        "Full Stack Software Engineer": 1.15,
+        "Embedded & Firmware": 1.20,
+        "Data Engineering & ETL": 1.20,
+        "Power & High Voltage": 1.10,
+        "Construction & Civil Project": 1.05,
+    }
+    
+    role_mult = 1.10
+    for r_k, r_v in role_multipliers.items():
+        if r_k.lower() in calc_spec.lower():
+            role_mult = r_v
+            break
+
+    # Experience base (BDT)
+    if "Fresher" in calc_exp:
+        base_low, base_med, base_high = 25000, 35000, 48000
+        usd_low, usd_med, usd_high = 300, 500, 800
+    elif "Junior" in calc_exp:
+        base_low, base_med, base_high = 40000, 55000, 75000
+        usd_low, usd_med, usd_high = 600, 1000, 1500
+    elif "Mid" in calc_exp:
+        base_low, base_med, base_high = 70000, 100000, 145000
+        usd_low, usd_med, usd_high = 1200, 2000, 2800
+    elif "Senior" in calc_exp:
+        base_low, base_med, base_high = 140000, 190000, 270000
+        usd_low, usd_med, usd_high = 2500, 3800, 5000
+    else:  # Lead
+        base_low, base_med, base_high = 220000, 300000, 450000
+        usd_low, usd_med, usd_high = 4500, 6500, 9500
+
+    if "Bangladesh" in calc_market:
+        low_val = int(base_low * role_mult)
+        med_val = int(base_med * role_mult)
+        high_val = int(base_high * role_mult)
+        cur_sym = "BDT"
+    else:
+        low_val = int(usd_low * role_mult)
+        med_val = int(usd_med * role_mult)
+        high_val = int(usd_high * role_mult)
+        cur_sym = "USD"
+
+    st.markdown(f"""
+    <div class='salary-box'>
+        <div style='display: flex; justify-content: space-around; text-align: center;'>
+            <div>
+                <span style='font-size: 13px; color: #475569;'>25th Percentile (Entry Band)</span>
+                <div style='font-size: 24px; font-weight: bold; color: #0284c7;'>{cur_sym} {low_val:,} / mo</div>
+            </div>
+            <div style='border-left: 2px solid #86efac; border-right: 2px solid #86efac; padding: 0 30px;'>
+                <span style='font-size: 13px; color: #15803d; font-weight: bold;'>50th Percentile (Market Median)</span>
+                <div style='font-size: 28px; font-weight: bold; color: #16a34a;'>{cur_sym} {med_val:,} / mo</div>
+            </div>
+            <div>
+                <span style='font-size: 13px; color: #475569;'>75th Percentile (Top Tier / MNC)</span>
+                <div style='font-size: 24px; font-weight: bold; color: #7c3aed;'>{cur_sym} {high_val:,} / mo</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Benchmark ladder chart
+    ladder_data = pd.DataFrame([
+        {"Tier": "Fresher (0-1Y)", "Min_BDT": int(25000 * role_mult), "Median_BDT": int(35000 * role_mult), "Max_BDT": int(48000 * role_mult)},
+        {"Tier": "Junior (1-2Y)", "Min_BDT": int(40000 * role_mult), "Median_BDT": int(55000 * role_mult), "Max_BDT": int(75000 * role_mult)},
+        {"Tier": "Mid Level (2-4Y)", "Min_BDT": int(70000 * role_mult), "Median_BDT": int(100000 * role_mult), "Max_BDT": int(145000 * role_mult)},
+        {"Tier": "Senior (5+Y)", "Min_BDT": int(140000 * role_mult), "Median_BDT": int(190000 * role_mult), "Max_BDT": int(270000 * role_mult)},
+        {"Tier": "Lead / Architect", "Min_BDT": int(220000 * role_mult), "Median_BDT": int(300000 * role_mult), "Max_BDT": int(450000 * role_mult)}
+    ])
+
+    fig_ladder = px.bar(
+        ladder_data,
+        x="Tier",
+        y="Median_BDT",
+        error_y=ladder_data["Max_BDT"] - ladder_data["Median_BDT"],
+        error_y_minus=ladder_data["Median_BDT"] - ladder_data["Min_BDT"],
+        color="Median_BDT",
+        color_continuous_scale="Greens",
+        labels={"Median_BDT": "Estimated Compensation (BDT/Month)", "Tier": "Career Progression Tier"},
+        title=f"Compensation Progression Ladder for {calc_spec}"
+    )
+    fig_ladder.update_layout(height=420)
+    st.plotly_chart(fig_ladder, use_container_width=True)
+
+    # Disclosed Salary Postings
+    st.markdown("---")
+    st.subheader(f"📌 Postings with Explicitly Disclosed Compensation ({len(explicit_salary_jobs)} Posts)")
+    if not explicit_salary_jobs.empty:
+        dis_cols = ["title", "company", "specialization", "salary_info", "location", "job_url"]
+        st.dataframe(
+            explicit_salary_jobs[[c for c in dis_cols if c in explicit_salary_jobs.columns]],
+            column_config={
+                "job_url": st.column_config.LinkColumn("Apply Link", display_text="Open Job Post")
+            },
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("Most companies in this region classify salary as 'Negotiable' upon interview.")
+
+# Tab 7: 3-Day Link Health, Executive Reports & Email Digest
+with tab7:
+    st.subheader("🔄 3-Day Link Verification, Executive Reports & Email Digest")
 
     col_h1, col_h2 = st.columns(2)
 
@@ -481,7 +733,6 @@ with tab6:
                 st.success(f"Generated Executive PDF Report!")
                 st.markdown(f"- File Path: `{pdf_file}`")
                 
-                # Provide download button
                 with open(pdf_file, "rb") as f:
                     st.download_button(
                         label="📥 Download Executive PDF Report",
@@ -495,3 +746,47 @@ with tab6:
             rep = reporter.generate_daily_report()
             st.success(f"Generated daily report for {rep['date']}!")
             st.markdown(f"- Excel: `{rep['excel']}`")
+
+    st.markdown("---")
+    st.subheader("📧 Daily Morning Email Digest Center")
+    st.markdown("Automated morning HTML summary email delivering top new jobs, trending skills, and attached Excel reports.")
+
+    ed_col1, ed_col2 = st.columns([1, 1])
+
+    with ed_col1:
+        st.markdown("##### ⚙️ Digest Configuration Status")
+        import os
+        smtp_configured = bool(os.environ.get("SMTP_SERVER") and os.environ.get("SMTP_USER"))
+        if smtp_configured:
+            st.success("✔ SMTP credentials detected in environment!")
+            st.write(f"- Server: `{os.environ.get('SMTP_SERVER')}:{os.environ.get('SMTP_PORT', 587)}`")
+            st.write(f"- User: `{os.environ.get('SMTP_USER')}`")
+            st.write(f"- Recipient: `{os.environ.get('DIGEST_RECIPIENT_EMAIL', 'Default')}`")
+        else:
+            st.info("ℹ️ Running in **Local Preview Mode** (SMTP env vars not yet configured). Previews are saved locally to `reports/daily/`.")
+            st.markdown("""
+            To configure automated email delivery, set these environment variables (or GitHub Secrets):
+            - `SMTP_SERVER` (e.g. `smtp.gmail.com`)
+            - `SMTP_PORT` (e.g. `587`)
+            - `SMTP_USER` (your email address)
+            - `SMTP_PASSWORD` (Gmail App Password)
+            - `DIGEST_RECIPIENT_EMAIL` (destination email)
+            """)
+
+    with ed_col2:
+        st.markdown("##### 🚀 Test & Preview Actions")
+        if st.button("Preview HTML Email Digest"):
+            d_res = email_digest.generate_digest_html()
+            st.success("HTML Email Digest preview generated!")
+            with st.expander("👁️ View Rendered Email Digest Preview", expanded=True):
+                components.html(d_res["html_content"], height=600, scrolling=True)
+
+        if st.button("Send Email Digest (Live / Preview)"):
+            with st.spinner("Processing email digest..."):
+                send_res = email_digest.send_daily_digest()
+                if send_res.get("status") == "sent":
+                    st.success(f"✔ Email digest sent successfully to {send_res.get('recipient')}!")
+                elif send_res.get("status") == "preview_saved":
+                    st.info(f"✔ Email preview successfully created at `{send_res.get('preview_file')}`!")
+                else:
+                    st.error(f"Error: {send_res.get('error')}")
