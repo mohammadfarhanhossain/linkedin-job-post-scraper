@@ -74,22 +74,32 @@ def generate_daily_report(target_date: Optional[str] = None) -> Dict[str, str]:
 
     # Export Multi-tab Excel
     with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
-        # Sheet 1: All Jobs with complete 3-tier hierarchy and rich data
+        # Columns definition
         desired_cols = [
             "title", "company", "specialization", "category", "field",
             "location", "target_region", "skills", "experience_level",
             "salary_info", "status", "date_posted", "job_url"
         ]
         export_jobs_df = jobs_df[[c for c in desired_cols if c in jobs_df.columns]] if not jobs_df.empty else pd.DataFrame(columns=desired_cols)
-        export_jobs_df.to_excel(writer, sheet_name="All Vacancies", index=False)
+        
+        # Sheet 1: Whole World (BD + All Countries Combined)
+        export_jobs_df.to_excel(writer, sheet_name="World Total (BD + Global)", index=False)
 
-        # Sheet 2: Specialization Breakdown
+        # Sheet 2: Just Bangladesh (Local BD Jobs)
+        bd_jobs_df = export_jobs_df[export_jobs_df["target_region"] == "Bangladesh"]
+        bd_jobs_df.to_excel(writer, sheet_name="Bangladesh Only (Local)", index=False)
+
+        # Sheet 3: International / Remote (Outside BD)
+        global_jobs_df = export_jobs_df[export_jobs_df["target_region"] != "Bangladesh"]
+        global_jobs_df.to_excel(writer, sheet_name="International Remote", index=False)
+
+        # Sheet 4: Granular Specialization Breakdown
         spec_summary.to_excel(writer, sheet_name="Specialization Breakdown", index=False)
 
-        # Sheet 3: Category Breakdown
+        # Sheet 5: Functional Category Summary
         cat_summary.to_excel(writer, sheet_name="Category Summary", index=False)
 
-        # Sheet 4: Top Companies
+        # Sheet 6: Top Hiring Companies
         comp_summary.to_excel(writer, sheet_name="Top Companies Hiring", index=False)
 
     # Apply styling

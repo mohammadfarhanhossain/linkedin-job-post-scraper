@@ -107,14 +107,18 @@ st.sidebar.divider()
 # Market Scope Filter (Bangladesh vs Worldwide / Global)
 scope_choice = st.sidebar.radio(
     "🌍 Select Market Scope:",
-    ["All Markets Combined", "🇧🇩 Bangladesh (Local)", "🌐 Worldwide / Global (Remote)"],
+    [
+        "🌍 Whole World (BD + All Countries Combined)",
+        "🇧🇩 Bangladesh Only (Just BD er manusher jonno)",
+        "🌐 International Remote (Outside Bangladesh)"
+    ],
     index=0
 )
 
-if "Bangladesh" in scope_choice:
+if "Bangladesh Only" in scope_choice:
     selected_region = "Bangladesh"
     all_jobs = all_jobs[all_jobs["target_region"] == "Bangladesh"]
-elif "Worldwide" in scope_choice:
+elif "International Remote" in scope_choice:
     selected_region = "Worldwide"
     all_jobs = all_jobs[all_jobs["target_region"] == "Worldwide"]
 else:
@@ -184,17 +188,17 @@ top_sector_count = field_counts.get(top_sector, 0) if field_counts else 0
 active_jobs_count = len(all_jobs[all_jobs["status"] == "Active"]) if not all_jobs.empty else 0
 
 with col1:
-    st.metric("Total Jobs Tracked", f"{len(all_jobs):,}")
+    st.metric("👁️ Current Filter View", f"{len(all_jobs):,}")
 with col2:
-    st.metric("🇧🇩 Bangladesh Jobs", f"{stats.get('bd_jobs', 0):,}")
+    st.metric("🇧🇩 Bangladesh (Just BD)", f"{stats.get('bd_jobs', 0):,}")
 with col3:
-    st.metric("🌐 Global / Worldwide", f"{stats.get('worldwide_jobs', 0):,}")
+    st.metric("🌐 International (Outside BD)", f"{stats.get('worldwide_jobs', 0):,}")
 with col4:
-    st.metric("Today's New Vacancies", f"{today_jobs_count}")
+    st.metric("🌍 Whole World Total", f"{stats.get('total_jobs', 0):,}")
 with col5:
-    st.metric("Hiring Employers", f"{stats.get('total_companies', 0):,}")
+    st.metric("🏢 Hiring Employers", f"{stats.get('total_companies', 0):,}")
 with col6:
-    st.metric("Top Hiring Domain", f"{top_sector[:15]}.. ({top_sector_count})")
+    st.metric("🔥 Top Domain", f"{top_sector[:13]}.. ({top_sector_count})")
 
 st.divider()
 
